@@ -3,6 +3,10 @@ require "pry"
 INITIAL_MARKER = ' '
 PLAYER_MARKER = 'X'
 COMPUTER_MARKER = 'O'
+WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] + # rows
+                [[1, 4, 7], [2, 5, 8], [3, 6, 9]] + # columns
+                [[1, 5, 9], [3, 5, 7]]              # diagonals
+
 
 player_wins = 0
 computer_wins = 0
@@ -67,8 +71,18 @@ def player_places_piece!(brd)
 end
 
 def computer_places_piece!(brd)
-  square = empty_squares(brd).sample
-  brd[square] = COMPUTER_MARKER
+  win_square = check_for_win(brd)
+  threat_square = check_for_threat(brd)
+  if win_square
+    brd[win_square] = COMPUTER_MARKER
+  elsif threat_square
+    brd[threat_square] = COMPUTER_MARKER   
+  elsif brd[5] == INITIAL_MARKER
+    brd[5] = COMPUTER_MARKER
+  else
+    square = empty_squares(brd).sample
+    brd[square] = COMPUTER_MARKER
+  end
 end
 
 def board_full?(brd)
@@ -79,12 +93,52 @@ def someone_won?(brd)
   !!detect_winner(brd)
 end
 
-def detect_winner(brd)
-  winning_lines = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] + # rows
-                  [[1, 4, 7], [2, 5, 8], [3, 6, 9]] + # columns
-                  [[1, 5, 9], [3, 5, 7]]              # diagonals
+def check_for_2_in_a_row(brd, player)
+  WINNING_LINES.each do |array|
+    empty_space_number = nil
+    array.each do |num|
+      if brd[num] == INITIAL_MARKER
+        empty_space_number = num
+      end
+    end
+    if (2 == array.count { |number| player == brd[number] }) && array.include?(empty_space_number)
+      return array
+    end 
+  end
+end
 
-  winning_lines.each do |line|
+def check_for_threat(brd)
+  threat_array = check_for_2_in_a_row(brd, PLAYER_MARKER)
+  threat_square = nil
+  if threat_array == WINNING_LINES
+    nil
+  elsif threat_array.count == 3
+    threat_array.each do |number|
+      if empty_squares(brd).include?(number)
+        threat_square = number
+      end
+    end
+  end
+  threat_square
+end
+
+def check_for_win(brd)
+  threat_array = check_for_2_in_a_row(brd, COMPUTER_MARKER)
+  threat_square = nil
+  if threat_array == WINNING_LINES
+    nil
+  elsif threat_array.count == 3
+    threat_array.each do |number|
+      if empty_squares(brd).include?(number)
+        threat_square = number
+      end
+    end
+  end
+  threat_square
+end
+
+def detect_winner(brd)
+  WINNING_LINES.each do |line|
     if brd.values_at(*line).count(PLAYER_MARKER) == 3
       return "Player"
     elsif brd.values_at(*line).count(COMPUTER_MARKER) == 3
@@ -132,12 +186,34 @@ def player_celebration
       puts "*" * num
       sleep 0.25
     end
-    until num == 0
+    until num == 1
       num -= 1
       puts "*" * num
       sleep(0.25)
     end
   end
+  player_wins = 0
+  computer_wins = 0
+end
+
+def computer_celebration
+  num = 0
+  puts "YOU ARE POWERLESS AGAINST MY COMPUTATIONAL PROWESS"
+  sleep 1
+  3.times do |_|
+    until num == 5
+      num += 1
+      puts "HA" * num
+      sleep 0.25
+    end
+    until num == 1
+      num -= 1
+      puts "HA" * num
+      sleep(0.25)
+    end
+  end
+  player_wins = 0
+  computer_wins = 0
 end
 
 rules
@@ -168,12 +244,16 @@ loop do
   else
     prompt "It's a tie!"
   end
-  player_wins = 5
+
   detect_grand_champion(player_wins, computer_wins)
 
   prompt "Number of computer wins: #{computer_wins}"
   prompt "Number of player wins: #{player_wins}"
   prompt "First to 5 is the GRAND CHAMPION"
+  if (computer_wins == 5 || player_wins == 5)
+    computer_wins = 0
+    player_wins = 0
+  end
   prompt "Play again?"
   answer = gets.chomp
   break if answer[0].downcase != 'y'
