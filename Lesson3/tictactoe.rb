@@ -1,5 +1,3 @@
-require "pry"
-
 INITIAL_MARKER = ' '
 PLAYER_MARKER = 'X'
 COMPUTER_MARKER = 'O'
@@ -13,7 +11,7 @@ def prompt(msg)
   puts "--> #{msg}"
 end
 
-def display_board(brd)
+def display_top_of_board(brd)
   system "clear"
   puts ""
   puts "     |      |"
@@ -23,11 +21,19 @@ def display_board(brd)
   puts "     |      |"
   puts "  #{brd[4]}  |  #{brd[5]}   |  #{brd[6]}"
   puts "     |      |"
+end
+
+def display_bottom_of_board(brd)
   puts "-----+------+-----"
   puts "     |      |"
   puts "  #{brd[7]}  |  #{brd[8]}   |  #{brd[9]}"
   puts "     |      |"
   puts ""
+end
+
+def display_board(brd)
+  display_top_of_board(brd)
+  display_bottom_of_board(brd)
 end
 
 def initialize_board
@@ -59,28 +65,33 @@ end
 
 def rules
   system "clear"
-  puts "Tic Tac Toe is played with players taking turns placing"
-  puts "pieces in a 3 by 3 grid with each player attempting to place three"
-  puts "pieces consecutively. Three pieces can be placed in the same row, same"
-  puts "column, or same diagonal to win the game. In our game, each area of the"
-  puts "grid corresponds to a number from 1 to 9"
-  puts ""
-  puts ""
-  puts "Press enter to display the grid with each area labelled with its"
-  puts "corresponding number."
+  prompt "Tic Tac Toe is played with players taking turns placing"
+  prompt "pieces in a 3 by 3 grid with each player attempting to place three"
+  prompt "pieces consecutively. Three pieces can be placed in the same row, same"
+  prompt "column, or same diagonal to win the game. In our game, each area of the"
+  prompt "grid corresponds to a number from 1 to 9"
+  prompt ""
+  prompt ""
+  prompt "Press enter to display the grid with each area labelled with its"
+  prompt "corresponding number."
   gets
+end
+
+def player_education
   board = tutorial_board
-  display_board(board)
-  puts "Ok! Ready to go! Press enter to play!"
+  display_board(board)1
+  prompt "Ok! Ready to go! If you can beat the computer 5 times you'll"
+  prompt "be the GRAND CHAMPION!!"
+  prompt "Press enter to play!"
   gets
 end
 
 def who_first_text
-  puts "Should you go first or the computer?"
-  puts "(Type me for player first, computer for computer first.)"
-  puts "Alternatively, you can type idk if choosing fills you with existential"
-  puts "dread and give the responsibility of choosing who goes first to the"
-  puts "computer"
+  prompt "Should you go first or the computer?"
+  prompt "(Type \"me\" for player first, \"computer\" for computer first.)"
+  prompt "Alternatively, you can type idk if choosing fills you with existential"
+  prompt "dread and give the responsibility of choosing who goes first to the"
+  prompt "computer"
 end
 
 def who_first?
@@ -152,28 +163,25 @@ def someone_won?(brd)
 end
 
 def check_for_2_in_a_row(brd, player)
-  WINNING_LINES.each do |array|
-    empty_space_number = nil
+  WINNING_LINES.select do |array|
+    empty_space_number = ''
+    if array.count { |number| player == brd[number] } == 2
+      count_on = true
+    end
     array.each do |num|
       if brd[num] == INITIAL_MARKER
         empty_space_number = num
       end
     end
-    if array.count { |number| player == brd[number] } == 2
-      count_on = true
-    end
-    if count_on && array.include?(empty_space_number)
-      return array
-    end
+    count_on && array.include?(empty_space_number)
   end
 end
 
 def check_for_threat(brd, marker)
-  threat_array = check_for_2_in_a_row(brd, marker)
+  threat_array = check_for_2_in_a_row(brd, marker).flatten
+  threat_array = threat_array.flatten
   threat_square = nil
-  if threat_array == WINNING_LINES
-    nil
-  elsif threat_array.count == 3
+  if threat_array.count == 3
     threat_array.each do |number|
       if empty_squares(brd).include?(number)
         threat_square = number
@@ -239,6 +247,7 @@ def computer_celebration
 end
 
 rules
+player_education
 
 loop do
   board = initialize_board
@@ -282,4 +291,4 @@ loop do
   end
 end
 
-prompt "Ok, no worries. Thanks for playing"
+prompt "Sounds good! Thanks for playing"
