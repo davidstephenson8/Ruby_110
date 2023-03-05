@@ -4,8 +4,9 @@ COMPUTER_MARKER = 'O'
 WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] + # rows
                 [[1, 4, 7], [2, 5, 8], [3, 6, 9]] + # columns
                 [[1, 5, 9], [3, 5, 7]]              # diagonals
-player_wins = 0
-computer_wins = 0
+GRAND_CHAMPION_WINS = 5
+player_wins = []
+computer_wins = []
 
 def prompt(msg)
   puts "--> #{msg}"
@@ -79,7 +80,7 @@ end
 
 def player_education
   board = tutorial_board
-  display_board(board)1
+  display_board(board)
   prompt "Ok! Ready to go! If you can beat the computer 5 times you'll"
   prompt "be the GRAND CHAMPION!!"
   prompt "Press enter to play!"
@@ -89,9 +90,10 @@ end
 def who_first_text
   prompt "Should you go first or the computer?"
   prompt "(Type \"me\" for player first, \"computer\" for computer first.)"
-  prompt "Alternatively, you can type idk if choosing fills you with existential"
+  prompt "Alternatively, you can type \"idk\" if choosing fills you with existential"
   prompt "dread and give the responsibility of choosing who goes first to the"
-  prompt "computer"
+  prompt "computer. You'll switch off every other turn to be fair after this choice"
+  prompt "is made."
 end
 
 def who_first?
@@ -162,6 +164,20 @@ def someone_won?(brd)
   !!detect_winner(brd)
 end
 
+def check_for_win(brd, p_wins, c_wins)
+  if someone_won?(brd)
+    prompt "#{detect_winner(brd)} won!"
+    case detect_winner(brd)
+    when "Player"
+      p_wins << 1
+    when "Computer"
+      c_wins << 1
+    end
+  else
+    prompt "It's a tie!"
+  end
+end
+
 def check_for_2_in_a_row(brd, player)
   WINNING_LINES.select do |array|
     empty_space_number = ''
@@ -203,9 +219,9 @@ def detect_winner(brd)
 end
 
 def detect_grand_champion(player, computer)
-  if player >= 5
+  if player.count >= 5
     player_celebration
-  elsif computer >= 5
+  elsif computer.count >= 5
     computer_celebration
   end
 end
@@ -246,12 +262,20 @@ def computer_celebration
   end
 end
 
+def finishing_remarks_play_again?(p_wins, c_wins )
+  prompt "Number of computer wins: #{c_wins.sum}"
+  prompt "Number of player wins: #{p_wins.sum}"
+  prompt "First to 5 is the GRAND CHAMPION"
+  prompt "Play again? (Yes to continue, anything else to quit)"
+  answer = gets.chomp
+end
+
 rules
 player_education
+current_player = who_first?
 
 loop do
   board = initialize_board
-  current_player = who_first?
 
   loop do
     display_board(board)
@@ -262,30 +286,17 @@ loop do
 
   display_board(board)
 
-  if someone_won?(board)
-    prompt "#{detect_winner(board)} won!"
-    case detect_winner(board)
-    when "Player"
-      player_wins += 1
-    when "Computer"
-      computer_wins += 1
-    end
-  else
-    prompt "It's a tie!"
-  end
+  check_for_win(board, player_wins, computer_wins)
 
   detect_grand_champion(player_wins, computer_wins)
 
-  if computer_wins == 5 || player_wins == 5
-    computer_wins = 0
-    player_wins = 0
+  if computer_wins.sum == GRAND_CHAMPION_WINS || player_wins.sum == GRAND_CHAMPION_WINS
+    computer_wins = []
+    player_wins = []
   end
 
-  prompt "Number of computer wins: #{computer_wins}"
-  prompt "Number of player wins: #{player_wins}"
-  prompt "First to 5 is the GRAND CHAMPION"
-  prompt "Play again? (Yes to continue, anything else to quit)"
-  answer = gets.chomp
+  alternate_player(current_player)
+  answer = finishing_remarks_play_again?(player_wins, computer_wins)
   if answer[0].to_s.downcase != 'y'
     break
   end
