@@ -19,16 +19,13 @@ FULL_SET_OF_CARDS = [
   ["C", "K"], ["C", "Q"], ["C", "J"], ["C", "10"], ["C", "9"], ["C", "8"], ["C", "7"], ["C", "6"], 
   ["C", "5"], ["C", "4"], ["C", "3"], ["C", "2"]
 ]
-
 FACE_CARDS = ["K", "Q", "J"]
-
 ACE = "A"
-
 deck = FULL_SET_OF_CARDS.clone
-
 player_hand = []
-
 dealer_hand = []
+choice_counter = [0]
+hit_counter = [0]
 
 def deal_cards!(dck, p_hand, d_hand)
   2.times do |_|
@@ -61,43 +58,44 @@ def pretty_suits(hand)
   end
 end
 
-def display_cards(hand)
-  hand = pretty_suits(hand) 
-  suit_1 = hand[0][0]
-  value_1 = hand[0][1]
-  suit_2 = hand[1][0]
-  value_2 = hand[1][1]
-  puts "┌---------┐   ┌---------┐"
-  puts "| #{suit_1}       |   | #{suit_2}       |"
-  puts "|         |   |         |"
-  puts "|    " + "#{value_1}".ljust(2) + "   |   |    " + "#{value_2}".ljust(2)+ "   |"
-  puts "|         |   |         |"
-  puts "|       #{suit_1} |   |       #{suit_2} |"
-  puts "└---------┘   └---------┘"
-end
+# def display_cards(hand)
+#   hand = pretty_suits(hand) 
+#   suit_1 = hand[0][0]
+#   value_1 = hand[0][1]
+#   suit_2 = hand[1][0]
+#   value_2 = hand[1][1]
+#   puts "┌---------┐   ┌---------┐"
+#   puts "| #{suit_1}       |   | #{suit_2}       |"
+#   puts "|         |   |         |"
+#   puts "|    " + "#{value_1}".ljust(2) + "   |   |    " + "#{value_2}".ljust(2)+ "   |"
+#   puts "|         |   |         |"
+#   puts "|       #{suit_1} |   |       #{suit_2} |"
+#   puts "└---------┘   └---------┘"
+# end
 
-def generate_card(card)
-  suit = card[0]
-  value = card[1]
-  card = ["┌---------┐   ",
-          "| #{suit}       |",
-          "|         |", 
-          "|    " + "#{value}".ljust(2) + "   |   "
-          "|         |   "
-          "|       #{suit} |   ",
-          "└---------┘   "
-          ]
-  card
-end
+# def generate_card(card)
+#   suit = card[0]
+#   value = card[1]
+#   card = ["┌---------┐   ",
+#           "| #{suit}       |",
+#           "|         |", 
+#           "|    " + "#{value}".ljust(2) + "   |   "
+#           "|         |   "
+#           "|       #{suit} |   ",
+#           "└---------┘   "
+#           ]
+#   card
+# end
 
 def display_hands(p_hand, d_hand)
   prompt "PLAYER HAND"
-  display_cards(p_hand)
+  puts p_hand
   prompt "DEALER HAND"
-  display_cards(d_hand)
+  puts d_hand
 end
 
 def player_choice!(dck, p_hand)
+  choice_counter[0] += 1
   prompt "Do you want to hit or stay?"
   answer = gets.chomp
   if answer.downcase[0] == 'h'
@@ -110,6 +108,7 @@ def player_choice!(dck, p_hand)
 end
 
 def hit!(dck, hand)
+  hit_counter[0] += 1
   dealt_card = dck.sample
   hand << dealt_card
   dck.delete dealt_card
@@ -130,6 +129,7 @@ def cards_to_values(p_hand)
       value.to_i
     end
   end
+end
   # evaluate_aces!(card_values)
 end
 
@@ -138,30 +138,30 @@ end
 
 
 
-def evaluate_aces!(card_values)
-  p card_values.select do |value|
-    value.to_i > 0 # because the string "A" evaluates to 0 and all of the other values evaluate to positive integers
-  end
-  p other_cards
-  if other_cards.sum < 11
-    card_values.map! do value
-      if value == "A"
-        11
-      else
-        value
-      end
-    end
-  end
-  if other_cards.sum >= 11
-    card_values.map! do value
-      if value == "A"
-        1
-      else
-        value
-      end
-    end
-  end
-end
+# def evaluate_aces!(card_values)
+#   p card_values.select do |value|
+#     value.to_i > 0 # because the string "A" evaluates to 0 and all of the other values evaluate to positive integers
+#   end
+#   p other_cards
+#   if other_cards.sum < 11
+#     card_values.map! do value
+#       if value == "A"
+#         11
+#       else
+#         value
+#       end
+#     end
+#   end
+#   if other_cards.sum >= 11
+#     card_values.map! do value
+#       if value == "A"
+#         1
+#       else
+#         value
+#       end
+#     end
+#   end
+# end
 
 =begin
 how to evaluate if an ace is equal to 1 or 11
@@ -170,15 +170,23 @@ if equal to 10 or less ace is 11
 if 11 or more ace is 1
 =end
 
-def evaluate_hand(p_hand)
+def busted?(p_hand)
   values = cards_to_values(p_hand).sum
-  if values == 21
-    prompt "BLACKJACK"
-  elsif values > 21
-    prompt "BUSTED"
+  if values > 21
+    true
   else
-    prompt "NICE"
-  end
+    false
+end
+
+def no_hit?
+  if hit_counter != choice_counter
+    true
+  else
+    false
+end
+
+def player_stay_or_bust(p_hand)
+  busted?(p_hand) || no_hit?()
 end
 
 system "clear"
@@ -188,8 +196,9 @@ loop do
     display_hands(player_hand, dealer_hand)
     loop do
       player_choice!(deck, player_hand)
-      evaluate_hand(player_hand)
-      break
+      if player_stay_or_bust(player_hand)
+        break
+      end
     end
     p player_hand
     break

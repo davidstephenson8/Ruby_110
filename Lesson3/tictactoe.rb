@@ -292,7 +292,7 @@ loop do
 
   if computer_wins.sum == GRAND_CHAMPION_WINS || player_wins.sum == GRAND_CHAMPION_WINS
     computer_wins = []
-    player_wins = []
+    player_wins = []œ
   end
 
   alternate_player(current_player)
