@@ -33,15 +33,10 @@ def prompt(txt)
   puts ">> #{txt}"
 end
 
-def deal_cards!(dck, p_hand, d_hand)
+def deal_cards!(dck, hand)
   2.times do
     drawn_card = dck.sample
     p_hand << drawn_card
-    dck.delete(drawn_card)
-  end
-  2.times do
-    drawn_card = dck.sample
-    d_hand << drawn_card
     dck.delete(drawn_card)
   end
 end    
@@ -140,7 +135,8 @@ end
 
 system "clear"
 loop do 
-  deal_cards!(deck, player_hand, dealer_hand)
+  deal_cards!(deck, player_hand)
+  deal_cards!(deck, dealer_hand)
   loop do
     display_hands(player_hand, dealer_hand)
     player_choice!(player_hand, choice_counter, hit_counter, deck)
@@ -155,6 +151,7 @@ loop do
       player_win_output
       break
     end
+    if total_hand_value(dealer_hand) < 17
     hit!(dealer_hand, hit_counter, deck)
     display_hands(player_hand, dealer_hand)
     if dealer_win?(player_hand, dealer_hand)

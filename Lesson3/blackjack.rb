@@ -10,6 +10,8 @@
 7. Compare cards and declare winner.
 =end
 
+require "pry"
+
 FULL_SET_OF_CARDS = [
   ["H", "A"], ["H", "K"], ["H", "Q"], ["H", "J"], ["H", "10"], ["H", "9"], ["H", "8"], ["H", "7"], 
   ["H", "6"], ["H", "5"], ["H", "4"], ["H", "3"], ["H", "2"], ["D", "A"], ["D", "K"], ["D", "Q"],
@@ -27,181 +29,138 @@ dealer_hand = []
 choice_counter = [0]
 hit_counter = [0]
 
-def deal_cards!(dck, p_hand, d_hand)
-  2.times do |_|
-    dealt_card = dck.sample
-    p_hand << dealt_card
-    dck.delete(dealt_card)
-  end
-  2.times do |_|
-    dealt_card = dck.sample
-    d_hand << dealt_card
-    dck.delete(dealt_card)
-  end
-end
-
 def prompt(txt)
   puts ">> #{txt}"
 end
 
-def pretty_suits(hand)
-  hand.map do |card|
-    if card[0] == "H"
-      ["♥", card[1]]
-    elsif card[0] == "C"
-      ["♣", card[1]]
-    elsif card[0] == "D"
-      ["⬩", card[1]]
-    else
-      ["♠", card[1]]
-    end
+def deal_cards!(dck, hand)
+  2.times do
+    drawn_card = dck.sample
+    p_hand << drawn_card
+    dck.delete(drawn_card)
   end
-end
+end    
 
-# def display_cards(hand)
-#   hand = pretty_suits(hand) 
-#   suit_1 = hand[0][0]
-#   value_1 = hand[0][1]
-#   suit_2 = hand[1][0]
-#   value_2 = hand[1][1]
-#   puts "┌---------┐   ┌---------┐"
-#   puts "| #{suit_1}       |   | #{suit_2}       |"
-#   puts "|         |   |         |"
-#   puts "|    " + "#{value_1}".ljust(2) + "   |   |    " + "#{value_2}".ljust(2)+ "   |"
-#   puts "|         |   |         |"
-#   puts "|       #{suit_1} |   |       #{suit_2} |"
-#   puts "└---------┘   └---------┘"
-# end
-
-# def generate_card(card)
-#   suit = card[0]
-#   value = card[1]
-#   card = ["┌---------┐   ",
-#           "| #{suit}       |",
-#           "|         |", 
-#           "|    " + "#{value}".ljust(2) + "   |   "
-#           "|         |   "
-#           "|       #{suit} |   ",
-#           "└---------┘   "
-#           ]
-#   card
-# end
-
-def display_hands(p_hand, d_hand)
-  prompt "PLAYER HAND"
-  puts p_hand
-  prompt "DEALER HAND"
-  puts d_hand
-end
-
-def player_choice!(dck, p_hand)
-  choice_counter[0] += 1
-  prompt "Do you want to hit or stay?"
+def player_choice!(player_hand, choice_count, hit_count, deck)
+  choice_count[0] += 1
+  prompt "You can hit or stay! Type hit to add a card to your hand and stay to stand pat."
   answer = gets.chomp
-  if answer.downcase[0] == 'h'
-    p_hand = hit!(dck, p_hand)
-  elsif answer.downcase[0] == 's'
-    return
-  else
-    prompt "sorry, I didn't get that" 
-  end
-end
-
-def hit!(dck, hand)
-  hit_counter[0] += 1
-  dealt_card = dck.sample
-  hand << dealt_card
-  dck.delete dealt_card
-  hand
-end
-
-def cards_to_values(p_hand)
-  card_values = []
-  p_hand.each do |card|
-    card_values << card[1]
-  end
-  card_values.map! do |value|
-    if FACE_CARDS.include?(value)
-      10
-    elsif value == "A"
-      value
+  loop do 
+    if answer.downcase[0] == "h"
+      hit!(player_hand, hit_count, deck)
+      break
     else
-      value.to_i
+      break
     end
   end
 end
-  # evaluate_aces!(card_values)
+  
+def hit!(hand, hit_count, dck)
+  hit_count[0] += 1
+  drawn_card = dck.sample
+  hand << drawn_card
+  dck.delete(drawn_card)
 end
 
-# this method is going to evaluate the arrays after all of the other cards have been 
-# converted to their point values in #cards_to_values
+def extract_card_values(hand)
+  values = hand.map do |card|
+            card[1]
+           end
+end   
 
-
-
-# def evaluate_aces!(card_values)
-#   p card_values.select do |value|
-#     value.to_i > 0 # because the string "A" evaluates to 0 and all of the other values evaluate to positive integers
-#   end
-#   p other_cards
-#   if other_cards.sum < 11
-#     card_values.map! do value
-#       if value == "A"
-#         11
-#       else
-#         value
-#       end
-#     end
-#   end
-#   if other_cards.sum >= 11
-#     card_values.map! do value
-#       if value == "A"
-#         1
-#       else
-#         value
-#       end
-#     end
-#   end
-# end
-
-=begin
-how to evaluate if an ace is equal to 1 or 11
-evaluate all of the other cards in the hand
-if equal to 10 or less ace is 11
-if 11 or more ace is 1
-=end
-
-def busted?(p_hand)
-  values = cards_to_values(p_hand).sum
-  if values > 21
-    true
-  else
-    false
+def card_values_to_integers(hand)
+  values = extract_card_values(hand)
+  values.map! do |value|
+    if value.to_i > 0
+      value.to_i
+    elsif FACE_CARDS.include?(value)
+      10
+    elsif value == ACE
+      11
+    end
+  end
+  correct_ace_values!(values)
+  values
 end
 
-def no_hit?
-  if hit_counter != choice_counter
-    true
-  else
-    false
+def correct_ace_values!(value_array)
+  number_of_aces = value_array.count(11)
+  loop do 
+    if value_array.sum > 21
+      break if number_of_aces == 0
+      number_of_aces -= 1
+      ace_index = value_array.find_index(11)
+      value_array[ace_index] = 1
+    else
+      break
+    end
+  end
 end
 
-def player_stay_or_bust(p_hand)
-  busted?(p_hand) || no_hit?()
+def total_hand_value(hand)
+  card_values_to_integers(hand).sum
+end
+
+def busted?(hand)
+  total_hand_value(hand) > 21 ? true : false
+end
+
+def no_hit?(choice_count, hit_count)
+  choice_count[0] > hit_count[0]
+end
+
+def display_hands(player_h, dealer_h)
+  prompt "PLAYER HAND"
+  p player_h
+  prompt "DEALER HAND"
+  p dealer_h
+end
+
+def dealer_win?(dealer_hnd, player_hnd)
+  total_hand_value(dealer_hnd) > total_hand_value(player_hnd)
+end
+
+def dealer_win_output
+  prompt "THE DEALER WINS."
+end
+
+def player_win_output
+  prompt "YOU WIN"
+end
+
+def play_again?
+  prompt "Play again? (type yes to play again or anything else to quit)"
+  answer = gets.chomp
 end
 
 system "clear"
-loop do
-  deal_cards!(deck, player_hand, dealer_hand)
+loop do 
+  deal_cards!(deck, player_hand)
+  deal_cards!(deck, dealer_hand)
   loop do
     display_hands(player_hand, dealer_hand)
-    loop do
-      player_choice!(deck, player_hand)
-      if player_stay_or_bust(player_hand)
-        break
-      end
+    player_choice!(player_hand, choice_counter, hit_counter, deck)
+    if busted?(player_hand)
+      dealer_win
+      break
     end
-    p player_hand
-    break
+    break if no_hit?(choice_counter, hit_counter)
   end
-  break
+  loop do
+    if total_hand_value(dealer_hand) < 17
+    hit!(dealer_hand, hit_counter, deck)
+    if busted?(dealer_hand)
+      player_win_output
+      break
+    end
+    display_hands(player_hand, dealer_hand)
+    if dealer_win?(player_hand, dealer_hand)
+      dealer_win_output
+      break
+    end
+  end
+  answer = play_again?
+  break if answer.downcase[0] != "y"
 end
+
+prompt "OK COOL THANKS FOR PLAYING THEN HAVE A GOOD ONE"
