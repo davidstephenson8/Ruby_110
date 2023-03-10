@@ -33,10 +33,10 @@ def prompt(txt)
   puts ">> #{txt}"
 end
 
-def deal_cards!(dck, hand)
+def deal_cards!(hand, dck)
   2.times do
     drawn_card = dck.sample
-    p_hand << drawn_card
+    hand << drawn_card
     dck.delete(drawn_card)
   end
 end    
@@ -116,51 +116,70 @@ def display_hands(player_h, dealer_h)
   p dealer_h
 end
 
-def dealer_win?(dealer_hnd, player_hnd)
-  total_hand_value(dealer_hnd) > total_hand_value(player_hnd)
+def check_for_win(player_hnd, dealer_hnd)
+  if total_hand_value(dealer_hnd) > total_hand_value(player_hnd)
+    "dealer"
+  elsif total_hand_value(player_hnd) > total_hand_value(dealer_hnd)
+    "player"
+  else
+    "tie"
+  end
 end
 
-def dealer_win_output
-  prompt "THE DEALER WINS."
+def win_output(winner)
+  if winner == "dealer"
+    prompt "THE DEALER WON, SORRY!"
+  elsif winner == "player"
+    prompt "THE PLAYER WON"
+  else
+    prompt "It's a tie?!"
+  end
 end
 
-def player_win_output
-  prompt "YOU WIN"
-end
-
-def play_again?
+def playagain!(player_hnd, dealer_hnd)
+  player_hnd.clear
+  dealer_hnd.clear
   prompt "Play again? (type yes to play again or anything else to quit)"
   answer = gets.chomp
+  answer
 end
 
-system "clear"
-loop do 
-  deal_cards!(deck, player_hand)
-  deal_cards!(deck, dealer_hand)
+loop do
   loop do
-    display_hands(player_hand, dealer_hand)
-    player_choice!(player_hand, choice_counter, hit_counter, deck)
+    deal_cards!(player_hand, deck)
+    deal_cards!(dealer_hand, deck)
+    loop do 
+      display_hands(player_hand, dealer_hand)
+      player_choice!(player_hand, choice_counter, hit_counter, deck)
+      if busted?(player_hand)
+        break
+      elsif no_hit?(choice_counter, hit_counter)
+        break
+      end
+    end
     if busted?(player_hand)
-      dealer_win
+      display_hands(player_hand, dealer_hand)
+      win_output("dealer")
       break
     end
-    break if no_hit?(choice_counter, hit_counter)
+    loop do
+      if total_hand_value(dealer_hand) < 17
+        hit!(dealer_hand, hit_counter, deck)
+        display_hands(player_hand, dealer_hand)
+        if busted?(dealer_hand)
+          win_output("player")
+          break
+        end
+      else
+        display_hands(player_hand, dealer_hand)
+        winner = check_for_win(player_hand, dealer_hand)
+        win_output(winner)
+        break
+      end
+    end
   end
-  loop do
-    if total_hand_value(dealer_hand) < 17
-    hit!(dealer_hand, hit_counter, deck)
-    if busted?(dealer_hand)
-      player_win_output
-      break
-    end
-    display_hands(player_hand, dealer_hand)
-    if dealer_win?(player_hand, dealer_hand)
-      dealer_win_output
-      break
-    end
-  end
-  answer = play_again?
-  break if answer.downcase[0] != "y"
+  answer = playagain!(player_hand, dealer_hand)
+    break if answer.downcase[0] != "y"
 end
 
 prompt "OK COOL THANKS FOR PLAYING THEN HAVE A GOOD ONE"
