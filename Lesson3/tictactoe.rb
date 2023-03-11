@@ -100,12 +100,12 @@ def who_first?
   who_first_text
 
   loop do
-    response = gets.chomp
-    if response.downcase == "me"
+    response = gets.chomp.downcase
+    if response[0] == "m"
       return "player"
-    elsif response.downcase == "computer"
+    elsif response[0] == "c"
       return "computer"
-    elsif response.downcase == "idk"
+    elsif response[0] == "i"
       answer = ["player", "computer"].sample
       return answer
     else

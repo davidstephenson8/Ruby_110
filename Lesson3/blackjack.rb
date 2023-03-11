@@ -26,37 +26,26 @@ ACE = "A"
 deck = FULL_SET_OF_CARDS.clone
 player_hand = []
 dealer_hand = []
-choice_counter = [0]
-hit_counter = [0]
 
 def prompt(txt)
   puts ">> #{txt}"
 end
 
-def deal_cards!(hand, dck)
+def deal_cards!(p_hand, d_hand, dck)
   2.times do
     drawn_card = dck.sample
-    hand << drawn_card
+    p_hand << drawn_card
+    dck.delete(drawn_card)
+  end
+  2.times do
+    drawn_card = dck.sample
+    d_hand << drawn_card
     dck.delete(drawn_card)
   end
 end    
-
-def player_choice!(player_hand, choice_count, hit_count, deck)
-  choice_count[0] += 1
-  prompt "You can hit or stay! Type hit to add a card to your hand and stay to stand pat."
-  answer = gets.chomp
-  loop do 
-    if answer.downcase[0] == "h"
-      hit!(player_hand, hit_count, deck)
-      break
-    else
-      break
-    end
-  end
-end
   
-def hit!(hand, hit_count, dck)
-  hit_count[0] += 1
+def hit!(hand, dck)
+  
   drawn_card = dck.sample
   hand << drawn_card
   dck.delete(drawn_card)
@@ -105,15 +94,90 @@ def busted?(hand)
   total_hand_value(hand) > 21 ? true : false
 end
 
-def no_hit?(choice_count, hit_count)
-  choice_count[0] > hit_count[0]
+def suit_swap(card)
+  case card[0]
+  when "C"
+    "♣"
+  when "H"
+    "♥"
+  when "S"
+    "♠"
+  when "D"
+    "⬩"
+  end
+end
+
+def generate_card(card)
+  value = card[1]
+  suit = suit_swap(card) 
+  card_template = ["┌---------┐   ",
+                   "| S       |   ",
+                   "|         |   ", 
+                   "|   _9    |   ",
+                   "|         |   ",
+                   "|       S |   ",
+                   "└---------┘   "
+                   ]
+  pretty_card = card_template.map do |line|
+                chars = line.chars
+                chars.map! do |char|
+                  if char == "S"
+                    suit
+                  elsif
+                    char == "_"
+                    if value == "10"
+                      "1"
+                    else
+                      " "
+                    end
+                  elsif char == "9"
+                    if value == "10"
+                      "0"
+                    else
+                      value
+                    end
+                  else 
+                    char
+                  end  
+                end
+                chars.join
+              end
+  pretty_card
+end
+
+def generate_pretty_hand(hand)
+  pretty_card_hand = hand.map do |card|
+                        generate_card(card)
+                      end
+  pretty_card_hand.each do |pretty_card|
+    if pretty_card == pretty_card_hand[0]
+      next
+    else
+      for n in 0..6 do
+        pretty_card_hand[0][n] << pretty_card[n]
+      end
+    end
+  end
+  pretty_card_hand = pretty_card_hand[0]
+end
+
+def display_hand(hand)
+  hand.each do |line|
+    puts line
+  end
 end
 
 def display_hands(player_h, dealer_h)
+  player_total = total_hand_value(player_h)
+  dealer_total = total_hand_value(dealer_h)
   prompt "PLAYER HAND"
-  p player_h
+  player_h = generate_pretty_hand(player_h)
+  display_hand(player_h)
+  prompt "player total: #{player_total}"
   prompt "DEALER HAND"
-  p dealer_h
+  dealer_h = generate_pretty_hand(dealer_h)
+  display_hand(dealer_h)
+  prompt "dealer total: #{dealer_total}"
 end
 
 def check_for_win(player_hnd, dealer_hnd)
@@ -145,41 +209,45 @@ def playagain!(player_hnd, dealer_hnd)
 end
 
 loop do
-  loop do
-    deal_cards!(player_hand, deck)
-    deal_cards!(dealer_hand, deck)
-    loop do 
-      display_hands(player_hand, dealer_hand)
-      player_choice!(player_hand, choice_counter, hit_counter, deck)
-      if busted?(player_hand)
-        break
-      elsif no_hit?(choice_counter, hit_counter)
-        break
-      end
+  system "clear"
+  deal_cards!(player_hand, dealer_hand, deck)
+  loop do 
+    display_hands(player_hand, dealer_hand)
+    prompt "Do you want to hit or stay?"
+    action = gets.chomp
+    if action.downcase[0] == "h"
+      hit!(player_hand, deck)
+    elsif action.downcase[0] != "h"
+      break
+    else
+      prompt "sorry, didn't understand that" 
     end
     if busted?(player_hand)
       display_hands(player_hand, dealer_hand)
+      prompt "You busted. Lol."
       win_output("dealer")
       break
     end
-    loop do
-      if total_hand_value(dealer_hand) < 17
-        hit!(dealer_hand, hit_counter, deck)
-        display_hands(player_hand, dealer_hand)
-        if busted?(dealer_hand)
-          win_output("player")
-          break
-        end
-      else
-        display_hands(player_hand, dealer_hand)
-        winner = check_for_win(player_hand, dealer_hand)
-        win_output(winner)
+  end
+  loop do
+    break if busted?(player_hand)
+    if total_hand_value(dealer_hand) < 17
+      hit!(dealer_hand, deck)
+      display_hands(player_hand, dealer_hand)
+      if busted?(dealer_hand)
+        prompt "The dealer busted!"
+        win_output("player")
         break
       end
+    else
+      display_hands(player_hand, dealer_hand)
+      winner = check_for_win(player_hand, dealer_hand)
+      win_output(winner)
+      break
     end
   end
   answer = playagain!(player_hand, dealer_hand)
-    break if answer.downcase[0] != "y"
+  break if answer.downcase[0] != "y"
 end
 
 prompt "OK COOL THANKS FOR PLAYING THEN HAVE A GOOD ONE"
