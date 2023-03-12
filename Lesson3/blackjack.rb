@@ -167,14 +167,15 @@ def generate_pretty_card(card, crd_template)
   end
 end
 
-And then the card template would be mutated, so it'd get the first card right
-but would run the method and wouldn't change to the other cards because
-it wasn't running into the right stuff. Hard coding the spots in the template
+But then the card template would be mutated, my program would make the correct
+changes for the first card, but the other cards would run on the changed
+template which means they didn't encounter "S", "N", "_".
+Hard coding the spots in the template
 to put things just seemed a little cheaty. Like saying suit goes
-in card_template[1][2] and card_template[5][7] put it there every time
-seems not ideal. You can be more flexible with the card design if you
+in card_template[1][2] and card_template[5][7] so put it there every time
+didn't seem good. You can be more flexible with the card design if you
 just have the markers that the program's looking for instead of hard
-coding a spot. If you change card size ever you have to rewrite everything.
+coding a spot. If you change card size ever you'd have to rewrite everything.
 
 What are your thoughts?
 
@@ -211,7 +212,10 @@ def ten_swap(char)
 end
 
 def generate_pretty_hand(hand, crd_template)
-  if hand.flatten.size == 2
+  # the dealer hand when passed to this method is just one card, so passing
+  # it to the other part of this method would just pass the suit and not the
+  # value
+  if hand.flatten.size == 2  
     pretty_card_hand = generate_pretty_card(hand, crd_template)
     return pretty_card_hand
   elsif hand.flatten.size > 2
