@@ -1,15 +1,3 @@
-=begin
-1. Initialize deck
-2. Deal cards to player and dealer
-3. Player turn: hit or stay
-  - repeat until bust or "stay"
-4. If player bust, dealer wins.
-5. Dealer turn: hit or stay
-  - repeat until total >= 17
-6. If dealer bust, player wins.
-7. Compare cards and declare winner.
-=end
-
 require "pry"
 
 FULL_SET_OF_CARDS = [
@@ -25,9 +13,15 @@ FULL_SET_OF_CARDS = [
 ]
 FACE_CARDS = ["K", "Q", "J"]
 ACE = "A"
+DEALER_THRESHHOLD = 17
+GOAL_POINT_TOTAL = 21
+GRAND_CHAMPION_COUNT = 5
 deck = FULL_SET_OF_CARDS.clone
 player_hand = []
 dealer_hand = []
+player_wins = [0]
+dealer_wins = [0]
+winner = nil
 
 def prompt(txt)
   puts ">> #{txt}"
@@ -36,20 +30,24 @@ end
 def player_education
   prompt "Blackjack is a game played between the player and a dealer."
   prompt "The objective of the game is to get closest to 21 points without"
-  prompt "going over. The player goes first, and can choose to hit, or add"
-  prompt "another card to their hand, or stay, meaning they pass the play"
-  prompt "to the dealer. The dealer then attempts to get to 21, but will"
+  prompt "going over. The player goes first, and can choose to hit (add"
+  prompt "another card to their hand) or stay (pass the play"
+  prompt "to the dealer). The player can only see one of the dealer's cards"
+  prompt "during their turn, so they play with incomplete information."
+  prompt " "
+  prompt "The dealer then attempts to get to 21, but will"
   prompt "stop at 17. Number cards are worth their value, so a 1 is worth"
   prompt " 1, 2 is worth 2 points, etc. Face cards are worth 10 points and"
-  prompt "aces can be worth 1 point or 11 points depending on your hand. If"
-  prompt "an ace being valued at 11 and makes you go over 21, it's instead"
-  prompt "evaluated as a 1."
+  prompt "aces can be worth 1 point or 11 points depending on the other cards"
+  prompt "in your hand. If an ace being valued at 11 and makes you go over 21,"
+  prompt "it's instead evaluated as a 1."
   prompt " "
   prompt "Press enter to play blackjack! First one to 5 wins!"
-  gets.chomp
 end
 
 def deal_cards!(p_hand, d_hand, dck)
+  dck = FULL_SET_OF_CARDS.clone if dck.size < 10
+
   2.times do
     drawn_card = dck.sample
     p_hand << drawn_card
@@ -92,7 +90,7 @@ end
 def correct_ace_values!(value_array)
   number_of_aces = value_array.count(11)
   loop do
-    if value_array.sum > 21
+    if value_array.sum > GOAL_POINT_TOTAL
       break if number_of_aces == 0
       number_of_aces -= 1
       ace_index = value_array.find_index(11)
@@ -108,7 +106,7 @@ def total_hand_value(hand)
 end
 
 def busted?(hand)
-  total_hand_value(hand) > 21
+  total_hand_value(hand) > GOAL_POINT_TOTAL
 end
 
 def suit_swap(card)
@@ -132,7 +130,7 @@ card_template = ["┌---------┐   ",
                  "|       S |   ",
                  "└---------┘   "]
 
-def generate_card(card, crd_template)
+def generate_pretty_card(card, crd_template)
   pretty_card = crd_template.map do |line|
     chars = line.chars
     chars.map! do |char|
@@ -142,6 +140,48 @@ def generate_card(card, crd_template)
   end
   pretty_card
 end
+
+=begin
+this was my way of changing suits and values the template while keeping
+cyclomatic complexity down. #value_swap and #ten_swap were in the
+#generate_pretty_card
+method. I couldn't figure out a way to get all of this done without all of
+these branches. I tried an implementation with #map and []= assigning card
+templates that only needed 4 else/if statements but it was mutating my
+card_template array and I couldn't figure out a way to not do that.
+so the generate_pretty_card method looked something like
+
+def generate_pretty_card(card, crd_template)
+  pretty_card = crd_template.map do |line|
+    if line.include?("S")
+      line[line.index("S")] = suit
+    elsif line.include?("_") && value == "10"
+      line[line.index("_")] = "1"
+    elsif line.include?("_")
+      line[line.index("_")] = " "
+    elsif line.include?("N") && value == "10"
+      line[line.index("N")] = "0"
+    elsif line.include?("N")
+      line[line.index("N")] = value
+    end
+  end
+end
+
+And then the card template would be mutated, so it'd get the first card right
+but would run the method and wouldn't change to the other cards because
+it wasn't running into the right stuff. Hard coding the spots in the template
+to put things just seemed a little cheaty. Like saying suit goes
+in card_template[1][2] and card_template[5][7] put it there every time
+seems not ideal. You can be more flexible with the card design if you
+just have the markers that the program's looking for instead of hard
+coding a spot. If you change card size ever you have to rewrite everything.
+
+What are your thoughts?
+
+There's probably a better way to do all of this but I've spent a lot of time
+puzzling over this and getting something that rubocop accepts and works in
+the game feels like an accomplishment for now.
+=end
 
 def value_swap(char, card)
   value = card[1]
@@ -160,15 +200,6 @@ def value_swap(char, card)
   end
 end
 
-=begin
-this was my way of making these swaps into the template while keeping
-cyclomatic complexity down this all originally was in the generate_card
-method. I couldn't figure out a way to get all of this done without all of
-these branches. I had an implementation with #map and []= assigning card
-templates that only needed 4 else/if statements but it was mutating my
-card_template array and I couldn't figure out a way to not do that.
-=end
-
 def ten_swap(char)
   if char == "_"
     "1"
@@ -180,19 +211,26 @@ def ten_swap(char)
 end
 
 def generate_pretty_hand(hand, crd_template)
-  pretty_card_hand = hand.map do |card|
-    generate_card(card, crd_template)
+  if hand.flatten.size == 2
+    pretty_card_hand = generate_pretty_card(hand, crd_template)
+    return pretty_card_hand
+  elsif hand.flatten.size > 2
+    pretty_card_hand = hand.map do |card|
+      generate_pretty_card(card, crd_template)
+    end
   end
+  reformat_hand_for_display(pretty_card_hand)
+  pretty_card_hand[0]
+end
+
+def reformat_hand_for_display(pretty_card_hand)
   pretty_card_hand.each do |pretty_card|
-    if pretty_card == pretty_card_hand[0]
-      next
-    else
+    unless pretty_card == pretty_card_hand[0]
       (0..6).each do |n|
         pretty_card_hand[0][n] << pretty_card[n]
       end
     end
   end
-  pretty_card_hand = pretty_card_hand[0]
 end
 
 def display_hand(hand)
@@ -201,19 +239,22 @@ def display_hand(hand)
   end
 end
 
-def display_hands(player_h, dealer_h, crd_template)
+def display_hands(player_h, dealer_h, turn, crd_template)
   player_total = total_hand_value(player_h)
   dealer_total = total_hand_value(dealer_h)
   prompt "PLAYER HAND"
-  p player_h
-  player_h = generate_pretty_hand(player_h, crd_template)
-  display_hand(player_h)
+  pretty_player_h = generate_pretty_hand(player_h, crd_template)
+  display_hand(pretty_player_h)
   prompt "player total: #{player_total}"
   prompt "DEALER HAND"
-  p dealer_h
-  dealer_h = generate_pretty_hand(dealer_h, crd_template)
-  display_hand(dealer_h)
-  prompt "dealer total: #{dealer_total}"
+  if turn == "player"
+    pretty_dealer_h = generate_pretty_hand(dealer_h[0], crd_template)
+    display_hand(pretty_dealer_h)
+  elsif turn == "dealer"
+    pretty_dealer_h = generate_pretty_hand(dealer_h, crd_template)
+    display_hand(pretty_dealer_h)
+    prompt "dealer total: #{dealer_total}"
+  end
 end
 
 def check_for_win(player_hnd, dealer_hnd)
@@ -236,21 +277,72 @@ def win_output(winner)
   end
 end
 
-def playagain!(player_hnd, dealer_hnd)
-  player_hnd.clear
-  dealer_hnd.clear
-  prompt "Play again? (type yes to play again or no to quit)"
-  answer = gets.chomp
-  answer
+def win_counter!(winner, d_wins, p_wins)
+  if winner == "dealer"
+    d_wins[0] += 1
+  elsif winner == "player"
+    p_wins[0] += 1
+  end
 end
 
+def display_win_count(d_wins, p_wins)
+  prompt "Dealer: #{d_wins.sum} wins."
+  prompt "Player: #{p_wins.sum} wins."
+end
+
+def check_for_grand_champion(d_wins, p_wins)
+  if d_wins.sum >= GRAND_CHAMPION_COUNT
+    "dealer"
+  elsif p_wins.sum >= GRAND_CHAMPION_COUNT
+    "player"
+  end
+end
+
+def display_grand_champion(grand_champion)
+  system "clear"
+  prompt "#{grand_champion.capitalize} won this time!"
+  sleep(3)
+  2.times do
+    system "clear"
+    twinkles
+  end
+  prompt "YAY #{grand_champion.capitalize}!!!!"
+end
+
+def twinkles
+  3.times do
+    system "clear"
+    puts "||||||||||||||||||||||||"
+    sleep(0.25)
+    system "clear"
+    puts "////////////////////////"
+    sleep(0.25)
+    system "clear"
+    puts "------------------------"
+    sleep(0.25)
+    system "clear"
+    puts "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"
+    sleep(0.25)
+    system "clear"
+  end
+end
+
+def next_round!(player_hnd, dealer_hnd)
+  player_hnd.clear
+  dealer_hnd.clear
+  prompt "press enter to deal the next hand!"
+  gets.chomp
+end
+
+system "clear"
+player_education
+gets
 loop do
-  system "clear"
-  player_education
   deal_cards!(player_hand, dealer_hand, deck)
-  system "clear"
   loop do
-    display_hands(player_hand, dealer_hand, card_template)
+    turn = "player"
+    system "clear"
+    display_hands(player_hand, dealer_hand, turn, card_template)
     prompt "Do you want to hit or stay? Type your answer!"
     action = gets.chomp.downcase[0]
     if action == "h"
@@ -263,31 +355,42 @@ loop do
       sleep(2.5)
     end
     if busted?(player_hand)
-      display_hands(player_hand, dealer_hand, card_template)
+      turn = "dealer"
+      display_hands(player_hand, dealer_hand, turn, card_template)
       prompt "You busted. Lol."
+      winner = "dealer"
       win_output("dealer")
       break
     end
   end
   loop do
     break if busted?(player_hand)
-    if total_hand_value(dealer_hand) < 17
+    system "clear"
+    turn = "dealer"
+    if total_hand_value(dealer_hand) < DEALER_THRESHHOLD
       hit!(dealer_hand, deck)
-      display_hands(player_hand, dealer_hand, card_template)
+      display_hands(player_hand, dealer_hand, turn, card_template)
       if busted?(dealer_hand)
         prompt "The dealer busted!"
+        winner = "player"
         win_output("player")
         break
       end
     else
-      display_hands(player_hand, dealer_hand, card_template)
+      display_hands(player_hand, dealer_hand, turn, card_template)
       winner = check_for_win(player_hand, dealer_hand)
       win_output(winner)
       break
     end
   end
-  answer = playagain!(player_hand, dealer_hand)
-  break if answer.downcase[0] != "y"
+  win_counter!(winner, dealer_wins, player_wins)
+  display_win_count(dealer_wins, player_wins)
+  grand_champ = check_for_grand_champion(dealer_wins, player_wins)
+  if grand_champ
+    display_grand_champion(grand_champ)
+    break
+  end
+  next_round!(player_hand, dealer_hand)
 end
 
 prompt "OK COOL THANKS FOR PLAYING THEN HAVE A GOOD ONE"
