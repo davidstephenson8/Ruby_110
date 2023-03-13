@@ -304,13 +304,13 @@ end
 
 def display_grand_champion(grand_champion)
   system "clear"
-  prompt "#{grand_champion.capitalize} won this time!"
+  prompt "#{grand_champion.upcase} is the grand champion!"
   sleep(3)
   2.times do
     system "clear"
     twinkles
   end
-  prompt "YAY #{grand_champion.capitalize}!!!!"
+  prompt "YAY #{grand_champion.upcase}!!!!"
 end
 
 def twinkles
@@ -361,7 +361,7 @@ loop do
     if busted?(player_hand)
       turn = "dealer"
       display_hands(player_hand, dealer_hand, turn, card_template)
-      prompt "You busted. Lol."
+      prompt "You busted. Oops."
       winner = "dealer"
       win_output("dealer")
       break
