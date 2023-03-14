@@ -17,6 +17,11 @@
 
 - indicies represent each character in the string or each element of the array. They are numbered starting from 0. 
 
+```ruby
+["a", "b", "c", "d"]
+
+# In this array, string object "a" is at index 0, the string object "b" at index 1 and so forth.  
+
 - range indexing (slicing)
 - negative indicies
 - assigning elements
@@ -25,20 +30,21 @@
 - string keys
 - symbol keys
 # String methods: chars, concat, count, downcase, downcase!, freeze, include?, replace, reverse, reverse!, size, slice, slice!, split, strip, strip!, upcase, upcase!, upto
-- chars
-- concat
-- count
-- downcase(!)
-- freeze
-- include?
-- replace
-- reverse(!)
-- size
-- slice(!)
-- split
-- strip(!)
-- upcase(!)
-- upto
+- ``String#chars``
+- ``this 
+- ``String#concat``
+- ``String#count``
+- ``String#downcase(!)``
+- ``String#freeze``
+- ``String#include?``
+- ``String#replace``
+- ``String#reverse(!)``
+- ``String#size``
+- ``String#slice(!)``
+- ``String#split``
+- ``String#strip(!)``
+- ``String#upcase(!)``
+- ``String#upto``
 # Array methods: all?, any?, each, each_with_index, each_with_object, fetch, first, include?, join, last, map, map!, partition, pop, push, reverse, reverse!, select, select!, shift, slice, slice!, sort, sort!, unshift
 - all?
 - any?
@@ -94,8 +100,10 @@
   - if a method returns a value, another method can be called directly on that value. This is called "chaining." For example
 
 ```ruby
-# this method chain gets an input from the user and returns it as a string, removes the newline character, uppercases each character in the string and returns is as a new string
+# this method chain gets an input from the user and returns it as a string, 
+#removes the newline character, uppercases each character in the string and returns is as a new #string
 
 gets.chomp.uppercase
-
 ```
+
+- each method returns a value that is then passed to the next succesive method. 
